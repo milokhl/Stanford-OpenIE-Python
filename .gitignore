@@ -92,3 +92,6 @@ ENV/
 .idea/
 *.pkl
 .DS_Store
+
+# do not track large .jar files
+*.jar
