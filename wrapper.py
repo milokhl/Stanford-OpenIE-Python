@@ -127,9 +127,40 @@ def stanford_ie(input_filename, verbose=True, generate_graphviz=False):
 
     return results
 
+def extract_events_filelist(input_filepath, max_entailments_per_clause = 100, verbose=True, threads = 8):
+    """
+    input_filepath should be the path of a file containing
+    multiple text file paths on new lines
+
+    See: https://nlp.stanford.edu/software/openie.html#Usage
+    """
+    out = tmp_folder + 'out.txt'
+
+    absolute_path_to_script = os.path.dirname(os.path.realpath(__file__)) + '/'
+    command = 'cd {};'.format(absolute_path_to_script)
+    command += 'cd {}; {} -mx4g -cp "stanford-openie.jar:stanford-openie-models.jar:lib/*" ' \
+               'edu.stanford.nlp.naturalli.OpenIE {} -format ollie > {} -filelist {} -max_entailments_per_clause {}'. \
+        format(STANFORD_IE_FOLDER, JAVA_BIN_PATH, input_filepath, out, input_filepath, max_entailments_per_clause, threads)
+
+    if verbose:
+        debug_print('Executing command = {}'.format(command), verbose)
+        java_process = Popen(command, stdout=stderr, shell=True)
+    else:
+        java_process = Popen(command, stdout=stderr, stderr=open(os.devnull, 'w'), shell=True)
+    java_process.wait()
+    assert not java_process.returncode, 'ERROR: Call to stanford_ie exited with a non-zero code status.'
+
+    with open(out, 'r') as output_file:
+        results_str = output_file.readlines()
+    os.remove(out)
+
+    results = process_entity_relations(results_str, verbose)
+    return results
+
 
 def main(args):
     arg_p = arg_parse().parse_args(args[1:])
+    print("arg_p:", arg_p)
     filename = arg_p.filename
     verbose = arg_p.verbose
     generate_graphviz = arg_p.generate_graph
